@@ -63,7 +63,7 @@ var mkfloor = function(sc) {
 
 $(document).ready(function() {
 	var sc = set_up();
-	window.sphere = mksphere(sc.scene);
+	// window.sphere = mksphere(sc.scene);
 	window.fl = mkfloor(sc);	
 	perturb_sph(sc);	
 	sc.renderer.render(sc.scene,sc.camera);	
@@ -86,21 +86,16 @@ var perturb_sph = function(sc) {
 	 	v.y = v.y + 0.1*(Math.random() - 0.5);
 	 	v.z = v.z + 0.1*(Math.random() - 0.5);				
 	 });
-	 */
-	
+	// sphere.geometry.verticesNeedUpdate = true;	 
+	 */	
 	fl.geometry.vertices.map(function(v) {
-	 	//v.x = v.x + 0.8*(Math.random() - 0.5);
-	 	// v.y = v.y + 0.8*(Math.random() - 0.5);
-	 	// v.z = Math.min(0,v.z + 10*(Math.random()-0.5));
 		v.z = 0.99*v.z; // Math.min(0,v.z + 10*(Math.random()-0.5));
-		v.z = v.z + 1*Math.sin((0.02*v.x)+(0.01*v.y)+0.1*t);
-		
+		v.z = v.z + 1*Math.sin((0.02*v.x)+(0.01*v.y)+0.1*t);		
 	 });
-	// sphere.geometry.verticesNeedUpdate = true;
+
 	fl.geometry.verticesNeedUpdate = true;	
 	sc.renderer.render(sc.scene,sc.camera);
 	requestAnimationFrame(function() { p(sc); });		
-
 };
 
 $(window).on('mousemove', function(evt) {
