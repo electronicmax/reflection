@@ -1,0 +1,23 @@
+	// 
+	// console.log('hi');
+	// set the geometry to dynamic
+	// sphere.geometry.dynamic = true;
+	// changes to the vertices
+	// sphere.geometry.__dirtyVertices = true;
+	// changes to the normals
+	// sphere.geometry.__dirtyNormals = true;
+
+	sc.scene.remove(sphere);
+	var sphere_geo = new THREE.SphereGeometry(radius,segments,rings);
+	sphere_geo.vertices = sphere.geometry.vertices.concat([]);
+	sphere = new THREE.Mesh(sphere_geo, mat);
+	sc.scene.add(sphere);
+
+
+	var sphere_geo2 = new THREE.Geometry();
+	sphere_geo2.vertices = sphere_geo.vertices.concat([]);
+	sphere_geo2.boundingSphere = {radius: radius};
+	sphere_geo2.computeBoundingSphere(); sphere_geo2.computeTangents();
+	sphere_geo2.computeCentroids();
+	sphere_geo2.computeFaceNormals();
+	
