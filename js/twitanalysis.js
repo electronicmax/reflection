@@ -80,8 +80,11 @@ var set_up_camera = function() {
 	var camera = new THREE.PerspectiveCamera(VIEW_ANGLE,ASPECT,NEAR,FAR);
 	var scene = new THREE.Scene();
 	scene.add(camera);
-	camera.position.z = 900;
-	camera.rotation.x = -0.4;
+	// camera.position.z = 900;
+	// camera.rotation.y = Math.PI;
+	// camera.rotation.x = Math.PI;
+	// camera.rotation.z = 0;	
+	// camera.rotation.x = -0.4;
 	renderer.setSize(WIDTH,HEIGHT);
 	$('#container').append(renderer.domElement);
 	return { scene : scene, camera: camera, renderer:renderer };
@@ -176,14 +179,15 @@ var kmeans = function(texts) {
 	var tidx_range = range(texts.length);
 	var centroid_is = shuffled(tidx_range).slice(0,N); 
 	var centroids = centroid_is.map(function(c_i) { return texts[c_i].fv.concat([]); });
-	var iters = 100;
+	var iters = 10;
+	var memberships = [];
 	
 	range(iters).map(function(iter) {
 		// iterate n times
 		// E step
 		// similarity to each centroid
 		console.log(' iteration .. ', iter);
-		var memberships = tidx_range.map(function(t_i) {
+		memberships = tidx_range.map(function(t_i) {
 			var membership = centroids.map(function(c) {
 				// skip				
 				return vec_similarity( c, texts[t_i].fv );				
@@ -201,82 +205,123 @@ var kmeans = function(texts) {
 		
 		var new_centers = range(N).map(function(c_i) {	return zeros(texts[0].fv.length);});
 		tidx_range.map(function(t_i) {
+			// let's try hard assignment			
 			var fv = texts[t_i].fv
-			// let's try hard assignment
+			// debug
 			var ti_0 = memberships[t_i][0];
 			var ti_1 = memberships[t_i][1];
 			var ti_2 = memberships[t_i][2];
-			
+			// -
 			var idxs = range(3);
 			idxs.sort(function(x,y) { return memberships[t_i][y] - memberships[t_i][x]; });
 			var top_idx = idxs[0];
-
 			new_centers[top_idx] = vec_add(new_centers[top_idx], fv);
-			
-			/*
-			var vi_0 = vec_muls(fv,ti_0);
-			var vi_1 = vec_muls(fv,ti_1);
-			var vi_2 = vec_muls(fv,ti_2);
-			new_centers[0] = vec_add(new_centers[0], vi_0);//vec_muls(fv,memberships[t_i][0]));
-			new_centers[1] = vec_add(new_centers[1], vi_1);//vec_muls(fv,memberships[t_i][1]));
-			new_centers[2] = vec_add(new_centers[2], vi_2);//vec_muls(fv,memberships[t_i][2]));
-			*/
 		});
+		
 		centroids = new_centers.map(function(v) { return normalise(v); });
 	});
-
+	// put them back in
+	tidx_range.map(function(t_i) { texts[t_i].membership = memberships[t_i]; });
 	return centroids;
 };
 
 $(document).ready(function() {
+	var sc = set_up_camera();
+	window.sc = sc;		
 	load().then(function(d) {
 		console.log('got >> ', d);
 		window.texts = build_fvs_from_corpus( undefined, d );
 		window.centroids = kmeans(window.texts);
+		make_particles(sc.scene, window.texts.map(function(t) { return t.membership; }));
+		sc.renderer.render(sc.scene,sc.camera);
+		cam_rot(0,Math.PI,0);
+		start_drawing();
 	});
-	var sc = set_up_camera();
-	window.fl = mkfloor(sc);	
-	perturb_sph(sc);	
-	sc.renderer.render(sc.scene,sc.camera);	
-	window.sc = sc;
+	make_listeners();
 });
-
-var mksphere = function(scene) {
-	var sphere_geo = new THREE.SphereGeometry(radius,segments,rings);
+var make_sphere = function(scene,r,x,y,z) {
+	var sphere_geo = new THREE.Particle();
 	var sphere = new THREE.Mesh(sphere_geo, mat);
-	scene.add( sphere );	
+	scene.add( sphere );
+	sphere.position.x = x;
+	sphere.position.y = y;
+	sphere.position.z = z;		
 	return sphere;
 };
-var t = 0;
-var perturb_sph = function(sc) {
-	t += 1;
-	var p = arguments.callee;
-	/*
-	sphere.geometry.vertices.map(function(v) {
-	 	v.x = v.x + 0.1*(Math.random() - 0.5);
-	 	v.y = v.y + 0.1*(Math.random() - 0.5);
-	 	v.z = v.z + 0.1*(Math.random() - 0.5);				
-	 });
-	// sphere.geometry.verticesNeedUpdate = true;	 
-	 */	
-	fl.geometry.vertices.map(function(v) {
-		v.z = 0.99*v.z; // Math.min(0,v.z + 10*(Math.random()-0.5));
-		v.z = v.z + 1*Math.sin((0.02*v.x)+(0.01*v.y)+0.1*t);		
-	 });
-
-	fl.geometry.verticesNeedUpdate = true;	
-	sc.renderer.render(sc.scene,sc.camera);
-	requestAnimationFrame(function() { p(sc); });		
+var make_particles = function(scene,positions) {
+	var particle = new THREE.Geometry();
+	positions.map(function(p) { particle.vertices.push( new THREE.Vector3( p[0], p[1], p[2] ) ); });
+	scene.add(new THREE.ParticleSystem( particle, new THREE.ParticleBasicMaterial({size:0.01, color:0x10}) ));
 };
 
+
+/*
 $(window).on('mousemove', function(evt) {
 	// console.log(evt);
 	// fl.position.z = 0.8*evt.pageY;
 	// fl.position.z =	
-	var i = Math.round(nseg * (evt.pageY/$(document).height()));
-	var j = Math.round(nseg * (evt.pageX/$(document).width()));
-	console.log(j*nseg + i, fl.geometry.vertices[i*nseg + j]);
-	fl.geometry.vertices[j*nseg + i].z = - 100;
-	console.log(i*nseg + j, fl.geometry.vertices[i*nseg + j]);
-	fl.geometry.verticesNeedUpdate = true;	
+	var i = (evt.pageY/(1.0*$(document).height()));
+	var j = (evt.pageX/(1.0*$(document).width()));
+	console.log('x ', 2*Math.PI*i, ' y ', 2*Math.PI*j);
+	sc.camera.rotation.x  = 2*Math.PI*i;
+	sc.camera.rotation.y  = 2*Math.PI*j;
+	sc.renderer.render(sc.scene,sc.camera);			
+
 });
+*/
+
+
+var cam_rot = function(x,y,z) {
+	window.sc.camera.rotation.x = x || 0;
+	window.sc.camera.rotation.y = y || 0;
+	window.sc.camera.rotation.z = z || 0;	
+	// draw();
+};
+var cam_pos = function(x,y,z) {
+	window.sc.camera.position.x = x || 0;
+	window.sc.camera.position.y = y || 0;
+	window.sc.camera.position.z = z || 0;	
+	// draw();
+};
+var get_cam_rot = function() {
+	return { x: window.sc.camera.rotation.x, y: window.sc.camera.rotation.y, z: window.sc.camera.rotation.z,  };
+};
+
+var start_drawing = function() {
+	draw();
+	TWEEN.update();
+	requestAnimationFrame(arguments.callee);
+};
+
+var draw = function() {
+	window.sc.renderer.render(sc.scene,sc.camera);			
+};
+
+
+var make_listeners = function() {
+	var update_display = function() {
+		var r = get_cam_rot();
+		$('.display_rotx').html(r.x % (2*Math.PI));
+		$('.display_roty').html(r.y % (2*Math.PI));
+		$('.display_rotz').html(r.z % (2*Math.PI));				
+	};
+	var rotate_offset = function(x,y,z) {
+		var r = get_cam_rot();
+		var to = { x: r.x + x, y:  r.y + y, z: r.z + z };
+		console.log(' r ', r, ' to: ', to);
+		window.tween = new TWEEN.Tween(r).to(to, 100);
+		tween.onUpdate(function() {
+			cam_rot(this.x, this.y, this.z);;
+			update_display();
+		});
+		tween.start();
+	};
+	$('.xmin').on('click', function() { rotate_offset( -0.25, 0, 0 ); } );
+	$('.xpls').on('click', function() { rotate_offset( 0.25, 0, 0 ); } );
+	$('.ymin').on('click', function() { rotate_offset( 0, -0.25, 0 ); } );
+	$('.ypls').on('click', function() { rotate_offset( 0, 0.25, 0 ); } );
+	$('.zmin').on('click', function() { rotate_offset( 0, 0, -0.25 ); } );
+	$('.zpls').on('click', function() { rotate_offset( 0, 0, 0.25 ); } );
+	
+	$('.xmin').on('click', function() { });
+};
