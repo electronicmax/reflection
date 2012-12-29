@@ -95,32 +95,35 @@ require(['js/utils.js','js/em.js'], function(u,em) {
 		fl.position.z = 0;
 		return fl;
 	};
-	var make_listeners = function() {
-		var update_display = function() {
-			var r = get_cam_rot();
-			$('.display_rotx').html(r.x % (2*Math.PI));
-			$('.display_roty').html(r.y % (2*Math.PI));
-			$('.display_rotz').html(r.z % (2*Math.PI));				
-		};
-		var rotate_offset = function(x,y,z) {
-			var r = get_cam_rot();
-			var to = { x: r.x + x, y:  r.y + y, z: r.z + z };
-			console.log(' r ', r, ' to: ', to);
-			window.tween = new TWEEN.Tween(r).to(to, 100);
-			tween.onUpdate(function() {
-				cam_rot(this.x, this.y, this.z);;
-				update_display();
-			});
-			tween.start();
-		};
-		$('.xmin').on('click', function() { rotate_offset( -0.25, 0, 0 ); } );
-		$('.xpls').on('click', function() { rotate_offset( 0.25, 0, 0 ); } );
-		$('.ymin').on('click', function() { rotate_offset( 0, -0.25, 0 ); } );
-		$('.ypls').on('click', function() { rotate_offset( 0, 0.25, 0 ); } );
-		$('.zmin').on('click', function() { rotate_offset( 0, 0, -0.25 ); } );
-		$('.zpls').on('click', function() { rotate_offset( 0, 0, 0.25 ); } );
-
-	};	
+	var update_coordinates_display = function() {
+		var r = get_cam_rot();
+		var c = get_cam_pos();
+		$('.posx').html( (c.x).toFixed(2) );
+		$('.posy').html( (c.y).toFixed(2) );
+		$('.posz').html( (c.z).toFixed(2) );									
+		$('.display_rotx').html(((r.x % 2*Math.PI) * 180.0/Math.PI).toFixed(4));
+		$('.display_roty').html(((r.y % 2*Math.PI) * 180.0/Math.PI).toFixed(4));
+		$('.display_rotz').html(((r.z % 2*Math.PI) * 180.0/Math.PI).toFixed(4));				
+	};
+	// var make_listeners = function() {
+	// 	var rotate_offset = function(x,y,z) {
+	// 		var r = get_cam_rot();
+	// 		var to = { x: r.x + x, y:  r.y + y, z: r.z + z };
+	// 		console.log(' r ', r, ' to: ', to);
+	// 		window.tween = new TWEEN.Tween(r).to(to, 100);
+	// 		tween.onUpdate(function() {
+	// 			cam_rot(this.x, this.y, this.z);;
+	// 			update_coordinates_display();
+	// 		});
+	// 		tween.start();
+	// 	};
+	// 	$('.xmin').on('click', function() { rotate_offset( -0.25, 0, 0 ); } );
+	// 	$('.xpls').on('click', function() { rotate_offset( 0.25, 0, 0 ); } );
+	// 	$('.ymin').on('click', function() { rotate_offset( 0, -0.25, 0 ); } );
+	// 	$('.ypls').on('click', function() { rotate_offset( 0, 0.25, 0 ); } );
+	// 	$('.zmin').on('click', function() { rotate_offset( 0, 0, -0.25 ); } );
+	// 	$('.zpls').on('click', function() { rotate_offset( 0, 0, 0.25 ); } );
+	// };	
 
 	var make_sphere = function(scene,r,x,y,z) {
 		var sphere_geo = new THREE.Particle();
@@ -169,12 +172,17 @@ require(['js/utils.js','js/em.js'], function(u,em) {
 	var get_cam_rot = function() {
 		return { x: window.sc.camera.rotation.x, y: window.sc.camera.rotation.y, z: window.sc.camera.rotation.z,  };
 	};
+	var get_cam_pos = function() {
+		return { x: window.sc.camera.position.x, y: window.sc.camera.position.y, z: window.sc.camera.position.z,  };
+	};
+	
 
 	var start_drawing = function() {
 		draw();
 		TWEEN.update();
 		var delta = clock.getDelta(), time = clock.getElapsedTime() * 10;
 		controls.update(delta);
+		update_coordinates_display();
 		requestAnimationFrame(arguments.callee);
 	};
 
@@ -193,13 +201,11 @@ require(['js/utils.js','js/em.js'], function(u,em) {
 			make_particles(sc.scene, texts.map(function(t) { return t.membership; }));
 			sc.renderer.render(sc.scene,sc.camera);
 			cam_rot(0,Math.PI,0);
-			start_drawing();
-			
+			start_drawing();			
 			// debug
 			window.texts = texts;
 			window.centroids = centroids;
 		});
-		make_listeners();
 	});
 
 });
